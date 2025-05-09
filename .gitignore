@@ -1,0 +1,12 @@
+# Compiled source #
+###################
+*.csv
+*.com
+*.pyc
+*.pt
+*.pdf
+*.png
+
+data/
+multirun/
+outputs/

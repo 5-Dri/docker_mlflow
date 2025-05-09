@@ -1,0 +1,266 @@
+key: GAT_Cora
+
+
+# -------hydra & mlflow & optuna-------
+# command: mlflow server --backend-store-uri sqlite:///tracking.db --default-artifact-root file:/tmp/artifacts --host 0.0.0.0
+
+mlflow:
+  server_ip: mlflow
+  runname: test
+
+
+defaults:
+  - override hydra/sweeper: basic # [basic, optuna]
+
+# hydra:
+#   sweeper:
+#     sampler:
+#       _target_: optuna.samplers.TPESampler
+#     direction: maximize
+#     n_jobs: 1
+#     n_trials: 100
+
+
+# -------datasets (planetoid)-------
+
+Planetoid: &Planetoid
+  data_type: small-scale
+  epochs: 200
+  n_tri: 10
+  debug_mode: False
+
+Cora: &Cora
+  <<: *Planetoid
+  dataset: Cora
+  x_normalize: False
+  n_feat: 1433
+  n_class: 7
+
+CiteSeer: &CiteSeer
+  <<: *Planetoid
+  dataset: CiteSeer
+  x_normalize: True
+  n_feat: 3703
+  n_class: 6
+
+PubMed: &PubMed
+  <<: *Planetoid
+  dataset: PubMed
+  x_normalize: False
+  n_feat: 500
+  n_class: 3
+
+# -------datasets (others)-------
+
+PPI: &PPI
+  dataset: PPI
+  data_type: small-scale
+  n_feat: 1 # num. of node feat
+  e_feat: 8 # num. of edge feat
+  n_class: 112
+  n_tri: 3
+  epochs: 1000 # override >> GNN
+
+Arxiv: &Arxiv
+  dataset: Arxiv
+  data_type: small-scale
+  n_feat: 128
+  n_class: 40
+  n_tri: 5
+  epochs: 500 # override >> GNN
+
+PPIinduct: &PPIinduct
+  dataset: PPIinduct
+  data_type: small-scale
+  n_feat: 50
+  n_class: 121
+  n_tri: 5
+  epochs: 200
+
+Reddit: &Reddit
+  dataset: Reddit
+  data_type: large-scale
+  n_feat: 602
+  n_class: 41
+  n_tri: 3
+  epochs: 20 # override >> GNN
+
+
+# -------model interface-------
+
+GNN: &GNN
+  base_gnn: GNN
+  global_skip_connection: vanilla # [vanilla, jk, twin]
+  skip_connection: vanilla # [vanilla, res, dense, highway]
+  seed: 42
+  patience: 100
+
+
+# -------model instance-------
+
+# Graph Convolution Networks (GCN)
+GCN: &GCN
+  <<: *GNN
+  activation: ReLU
+  base_gnn: GCN # override >> GNN
+
+# Graph Attention Networks (GAT)
+GAT: &GAT
+  <<: *GNN
+  activation: ELU
+  base_gnn: GAT # override >> GNN
+  n_head: 8
+  n_head_last: 1
+
+# Graph SAGE (SAGE)
+SAGE: &SAGE
+  <<: *GNN
+  activation: ReLU
+  base_gnn: SAGE # override >> GNN
+
+
+# -------model instance + dataset-------
+
+# Planetoid
+GCN_Cora: &GCN_Cora
+  <<: [*Cora, *GCN]
+  norm: None
+  n_layer: 2
+  n_hid: 16
+  dropout: 0.4
+  learning_rate: 0.01
+  weight_decay: 0.001
+
+GAT_Cora: &GAT_Cora
+  <<: [*Cora, *GAT]
+  norm: None
+  n_layer: 2
+  n_hid: 16
+  dropout: 0.4
+  learning_rate: 0.01
+  weight_decay: 0.001
+
+GCN_CiteSeer: &GCN_CiteSeers
+  <<: [*CiteSeer, *GCN]
+  norm: LayerNorm
+  n_layer: 2
+  n_hid: 16
+  dropout: 0.4
+  learning_rate: 0.001
+  weight_decay: 0.0005
+
+GAT_CiteSeer: &GAT_CiteSeer
+  <<: [*CiteSeer, *GAT]
+  norm: LayerNorm
+  n_layer: 2
+  n_hid: 16
+  dropout: 0.4
+  learning_rate: 0.001
+  weight_decay: 0.0005
+
+GCN_PubMed: &GCN_PubMed
+  <<: [*PubMed, *GCN]
+  norm: LayerNorm
+  n_layer: 2
+  n_hid: 16
+  dropout: 0.4
+  learning_rate: 0.005
+  weight_decay: 0.001
+
+GAT_PubMed: &GAT_PubMed
+  <<: [*PubMed, *GAT]
+  norm: LayerNorm
+  n_layer: 2
+  n_hid: 16
+  dropout: 0.4
+  learning_rate: 0.005
+  weight_decay: 0.001
+
+# Others
+GCN_PPIinduct: &GCN_PPIinduct
+  <<: [*PPIinduct, *GCN]
+  skip_connection: highway
+  norm: BatchNorm1d
+  n_layer: 3
+  n_hid: 256
+  dropout: 0
+  learning_rate: 0.001
+  weight_decay: 0
+
+GAT_PPIinduct: &GAT_PPIinduct
+  <<: [*PPIinduct, *GAT]
+  skip_connection: highway
+  norm: BatchNorm1d
+  n_layer: 3
+  n_hid: 256
+  dropout: 0
+  learning_rate: 0.001
+  weight_decay: 0
+  n_head: 4
+  n_head_last: 6
+
+GCN_Arxiv: &GCN_Arxiv
+  <<: [*Arxiv, *GCN]
+  norm: BatchNorm1d
+  n_layer: 5
+  n_hid: 256
+  dropout: 0.5
+  learning_rate: 0.001
+  weight_decay: 0
+
+SAGE_Arxiv: &SAGE_Arxiv
+  <<: [*Arxiv, *SAGE]
+  norm: BatchNorm1d
+  n_layer: 5
+  n_hid: 256
+  dropout: 0.5
+  learning_rate: 0.001
+  weight_decay: 0
+
+GCN_Reddit: &GCN_Reddit
+  <<: [*Reddit, *GCN]
+  norm: BatchNorm1d
+  n_layer: 3
+  n_hid: 256
+  dropout: 0.3
+  learning_rate: 0.001
+  weight_decay: 0.0001
+
+SAGE_Reddit: &SAGE_Reddit
+  <<: [*Reddit, *SAGE]
+  norm: BatchNorm1d
+  n_layer: 3
+  n_hid: 256
+  dropout: 0.3
+  learning_rate: 0.001
+  weight_decay: 0.0001
+
+GCN_PPI: &GCN_PPI
+  <<: [*PPI, *GCN]
+  norm: BatchNorm1d
+  n_layer: 4
+  n_hid: 256
+  dropout: 0.6
+  learning_rate: 0.005
+  weight_decay: 0
+
+SAGE_PPI: &SAGE_PPI
+  <<: [*PPI, *SAGE]
+  norm: BatchNorm1d
+  n_layer: 4
+  n_hid: 256
+  dropout: 0.6
+  learning_rate: 0.005
+  weight_decay: 0
+
+
+
+
+
+
+# for experiment visualize alpha
+GAT_PubMed_visualize_alpha: &GAT_PubMed_visualize_alpha
+  <<: [*GAT_PubMed]
+  debug_mode: True
+  n_layer: 3
+

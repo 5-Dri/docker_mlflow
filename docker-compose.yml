@@ -1,0 +1,25 @@
+services:
+  mlflow:
+    container_name: mlflow
+    build: ./mlflow_docker/
+    ports: 
+      - "5000:5000"
+    command: mlflow server --backend-store-uri sqlite:///mlflow.db --default-artifact-root /mlruns --host 0.0.0.0
+
+  torch:
+    container_name: torch
+    build: ./torch_docker/
+    volumes: 
+      - ./prog:/root/prog
+    command: /bin/bash
+    tty: true
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+
